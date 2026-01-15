@@ -22,24 +22,52 @@ def run(cmd, **kwargs):
 
 def main():
     print("Export only allowed settings:")
-    settings = run(
-        ["bash", "-c", "grep export ./ci/test/00_setup_env*.sh"],
-        stdout=subprocess.PIPE,
-        text=True,
-    ).stdout.splitlines()
-    settings = set(l.split("=")[0].split("export ")[1] for l in settings)
-    # Add "hidden" settings, which are never exported, manually. Otherwise,
-    # they will not be passed on.
-    settings.update([
+    # Hardcode the list of allowed settings instead of grepping scripts to prevent injection
+    settings = {
         "BASE_BUILD_DIR",
         "CI_FAILFAST_TEST_LEAVE_DANGLING",
-    ])
+        "FILE_ENV",
+        "BASE_ROOT_DIR",
+        "BASE_READ_ONLY_DIR",
+        "CI_IMAGE_NAME_TAG",
+        "CI_IMAGE_PLATFORM",
+        "CONTAINER_NAME",
+        "DOCKER_BUILD_CACHE_ARG",
+        "DANGER_CI_ON_HOST_FOLDERS",
+        "DANGER_CI_ON_HOST_CCACHE_FOLDER",
+        "RESTART_CI_DOCKER_BEFORE_RUN",
+        "CI_CONTAINER_CAP",
+        "CCACHE_DIR",
+        "DEPENDS_DIR",
+        "PREVIOUS_RELEASES_DIR",
+        "RUN_UNIT_TESTS",
+        "RUN_FUNCTIONAL_TESTS",
+        "RUN_FUZZ_TESTS",
+        "RUN_TIDY",
+        "RUN_IWYU",
+        "GOAL",
+        "MAKEJOBS",
+        "TEST_RUNNER_TIMEOUT_FACTOR",
+        "TEST_RUNNER_EXTRA",
+        "BITCOIN_CONFIG",
+        "BITCOIN_CONFIG_ALL",
+        "DIR_QA_ASSETS",
+        "TIDY_LLVM_V",
+        "APT_LLVM_V",
+        "DPKG_ADD_ARCH",
+        "PACKAGES",
+        "PIP_PACKAGES",
+        "USE_INSTRUMENTED_LIBCPP",
+        "XCODE_VERSION",
+        "XCODE_BUILD_ID",
+        "SDK_URL",
+    }
 
     # Append $USER to /tmp/env to support multi-user systems and $CONTAINER_NAME
     # to allow support starting multiple runs simultaneously by the same user.
     env_file = "/tmp/env-{u}-{c}".format(
-        u=os.environ["USER"],
-        c=os.environ["CONTAINER_NAME"],
+        u=shlex.quote(os.environ.get("USER", "unknown")),
+        c=shlex.quote(os.environ["CONTAINER_NAME"]),
     )
     with open(env_file, "w") as file:
         for k, v in os.environ.items():
